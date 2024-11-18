@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI Review 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>AI Review 设置</h1>
+    
+    <section class="section">
+      <h2>GitHub 设置</h2>
+      <div class="form-group">
+        <label for="githubToken">GitHub Token</label>
+        <input type="password" id="githubToken" placeholder="输入GitHub个人访问令牌">
+        <p class="help-text">
+          需要具有repo权限的GitHub Token。
+          <a href="https://github.com/settings/tokens" target="_blank">点击创建Token</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>AI 服务设置</h2>
+      <div class="form-group">
+        <label for="aiService">选择 AI 服务</label>
+        <select id="aiService">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic Claude</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>OpenAI 设置</h2>
+      <div class="form-group">
+        <label for="openaiApiKey">API Key</label>
+        <input type="password" id="openaiApiKey" placeholder="输入OpenAI API密钥">
+      </div>
+      <div class="form-group">
+        <label for="openaiApiEndpoint">API 地址（可选）</label>
+        <input type="text" id="openaiApiEndpoint" placeholder="https://api.openai.com/v1/chat/completions">
+        <p class="help-text">如果使用第三方代理服务，可以自定义API地址</p>
+      </div>
+      <div class="form-group">
+        <label for="openaiModel">模型（可选）</label>
+        <input type="text" id="openaiModel" placeholder="gpt-4o">
+        <p class="help-text">默认使用 gpt-4o，可以自定义其他兼容模型</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Anthropic 设置</h2>
+      <div class="form-group">
+        <label for="anthropicApiKey">API Key</label>
+        <input type="password" id="anthropicApiKey" placeholder="输入Anthropic API密钥">
+      </div>
+      <div class="form-group">
+        <label for="anthropicModel">模型</label>
+        <select id="anthropicModel">
+          <option value="claude-3-opus">Claude-3 Opus</option>
+          <option value="claude-3-sonnet">Claude-3 Sonnet</option>
+          <option value="claude-3-haiku">Claude-3 Haiku</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>审查设置</h2>
+      <div class="form-group">
+        <label for="reviewPrompt">代码审查提示词</label>
+        <textarea id="reviewPrompt" rows="6" placeholder="请用中文回复。作为代码审查员，请帮我检查以下代码：
+1. 代码质量和最佳实践
+2. 潜在的bug和安全问题
+3. 性能优化建议
+4. 可维护性和可读性改进"></textarea>
+        <p class="help-text">自定义提示词来指导AI如何审查代码。支持使用变量：
+          {files} - 变更文件列表
+          {diff} - 代码变更内容
+          {language} - 编程语言</p>
+      </div>
+      <div class="form-group">
+        <label for="maxTokens">最大Token数</label>
+        <input type="number" id="maxTokens" min="100" max="4000" step="100" value="1000">
+      </div>
+      <div class="form-group">
+        <label for="ignoreFiles">忽略文件（每行一个）</label>
+        <textarea id="ignoreFiles" rows="4" placeholder="*.test.js&#10;*.min.js&#10;package-lock.json"></textarea>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="save" class="primary">保存设置</button>
+      <button id="reset" class="secondary">恢复默认设置</button>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html> 

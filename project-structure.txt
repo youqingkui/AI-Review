@@ -1,0 +1,20 @@
+ai-review/
+├── manifest.json
+├── src/
+│   ├── background/
+│   │   └── background.js
+│   ├── content/
+│   │   └── content.js
+│   ├── popup/
+│   │   ├── popup.html
+│   │   ├── popup.css
+│   │   └── popup.js
+│   └── options/
+│       ├── options.html
+│       ├── options.css
+│       └── options.js
+└── assets/
+    └── icons/
+        ├── icon16.png
+        ├── icon48.png
+        └── icon128.png 
