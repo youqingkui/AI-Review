@@ -49,7 +49,7 @@ function displayPRInfo(prInfo) {
 
 // 显示审查结果
 function displayReviewResult(result) {
-  currentReviewResult = result; // 保存审查结果
+  currentReviewResult = result;
   const container = document.getElementById('pr-info');
   
   // 创建结果容器
@@ -57,7 +57,7 @@ function displayReviewResult(result) {
   resultDiv.className = 'review-result';
   resultDiv.innerHTML = `
     <h2>审查结果</h2>
-    <div class="review-content">${formatReviewContent(result.data.review)}</div>
+    <div id="review-content" class="review-content"></div>
     <div class="review-summary">
       <strong>统计信息:</strong>
       <ul>
@@ -114,15 +114,24 @@ async function startReview() {
       return;
     }
     
+    // 创建一个空的结果容器用于流式更新
+    displayReviewResult({
+      data: {
+        files: [],
+        summary: {
+          additions: 0,
+          deletions: 0
+        }
+      }
+    });
+    
     // 发送审查请求
     const result = await chrome.runtime.sendMessage({
       type: 'ANALYZE_PR',
       data: currentPRInfo
     });
     
-    if (result.success) {
-      displayReviewResult(result);
-    } else {
+    if (!result.success) {
       alert(`审查失败: ${result.error}`);
     }
     
@@ -168,4 +177,31 @@ async function submitReview() {
     button.textContent = '提交审查评论';
     button.disabled = false;
   }
+}
+
+// 添加消息监听器处理流式更新
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'STREAM_UPDATE') {
+    const { content, done } = message.data;
+    const reviewElement = document.getElementById('review-content');
+    
+    if (reviewElement) {
+      if (!done) {
+        // 处理流式内容更新
+        const formattedContent = formatReviewContent(content);
+        reviewElement.innerHTML += formattedContent;
+      } else {
+        // 处理完成事件
+        console.log('Stream completed');
+      }
+    }
+  }
+});
+
+// 格式化实时内容
+function formatReviewContent(content) {
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 } 
