@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "https://github.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://api.anthropic.com/*"
   ],
   "background": {
     "service_worker": "src/background/background.js"

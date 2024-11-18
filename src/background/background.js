@@ -4,11 +4,11 @@ const DEFAULT_SETTINGS = {
   openaiSettings: {
     apiKey: '',
     apiEndpoint: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4o'
+    model: 'gpt-4'
   },
   anthropicSettings: {
     apiKey: '',
-    model: 'claude-3-sonnet'
+    model: 'claude-3-5-sonnet-latest'
   },
   reviewSettings: {
     reviewPrompt: `请用中文回复。作为代码审查员，请帮我检查以下代码：
@@ -126,7 +126,7 @@ async function githubRequest(endpoint, token) {
   return data;
 }
 
-// 获取PR详细信息
+// 获取PR详细信
 async function getPRDetails({ owner, repo, prNumber }) {
   const settings = await getSettings();
   const token = settings.githubToken;
@@ -222,8 +222,9 @@ async function callAIAPI(prompt, settings) {
       model = settings.anthropicSettings.model;
       headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'anthropic-version': '2023-06-01'
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       };
       body = {
         model: model,
@@ -234,7 +235,7 @@ async function callAIAPI(prompt, settings) {
           }
         ],
         max_tokens: settings.reviewSettings.maxTokens,
-        temperature: 0.7
+        system: '你是一个专业的代码审查员，请用中文回复。'
       };
       break;
 
@@ -277,7 +278,7 @@ async function callAIAPI(prompt, settings) {
     model: model,
     responseLength: content.length,
     contentPreview: content.substring(0, 100) + '...',
-    rawResponse: data // 添加完整的原始响应，方便调试
+    rawResponse: data // 添加完整原始响应，方便调试
   });
 
   return content;
