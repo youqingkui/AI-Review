@@ -24,10 +24,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('no-pr').classList.remove('hidden');
   }
   
+  // 获取当前设置并初始化AI服务选择
+  const settings = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+  
+  // 初始化AI服务选择
+  const aiServiceSelect = document.getElementById('ai-service');
+  // 设置默认值为配置中的选择
+  aiServiceSelect.value = settings.aiService || 'openai';
+  
+  // 显示当前提示词
+  const promptTextarea = document.getElementById('review-prompt');
+  promptTextarea.value = settings.reviewSettings.reviewPrompt;
+  
+  // 自动调整文本框高度以适应内容
+  adjustTextareaHeight(promptTextarea);
+  
+  // 监听文本框输入事件，动态调整高度
+  promptTextarea.addEventListener('input', () => {
+    adjustTextareaHeight(promptTextarea);
+  });
+  
   // 绑定按钮事件
   document.getElementById('start-review').addEventListener('click', startReview);
   document.getElementById('submit-review').addEventListener('click', submitReview);
+  document.getElementById('toggle-prompt').addEventListener('click', togglePromptEditor);
 });
+
+// 添加自动调整文本框高度的函数
+function adjustTextareaHeight(textarea) {
+  // 重置高度
+  textarea.style.height = 'auto';
+  // 设置新高度
+  textarea.style.height = Math.max(150, textarea.scrollHeight) + 'px';
+}
+
+// 切换提示词编辑器显示
+function togglePromptEditor() {
+  const promptSection = document.getElementById('prompt-section');
+  const toggleBtn = document.getElementById('toggle-prompt');
+  const promptTextarea = document.getElementById('review-prompt');
+  
+  if (promptSection.classList.contains('hidden')) {
+    promptSection.classList.remove('hidden');
+    toggleBtn.textContent = '隐藏提示词';
+    // 显示时调整高度
+    adjustTextareaHeight(promptTextarea);
+  } else {
+    promptSection.classList.add('hidden');
+    toggleBtn.textContent = '显示提示词';
+  }
+}
 
 // 显示PR信息
 function displayPRInfo(prInfo) {
@@ -100,18 +146,23 @@ async function startReview() {
   button.textContent = '审查中...';
   
   try {
-    // 检查配置
+    // 获取当前设置
     const settings = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
     if (!settings.githubToken) {
       alert('请先在选项页面配置GitHub Token');
       return;
     }
 
-    // 根据选择的服务检查对应的API Key
-    if (settings.aiService === 'openai' && !settings.openaiSettings?.apiKey) {
+    // 获取当前选择的AI服务
+    const selectedService = document.getElementById('ai-service').value;
+    // 获取当前提示词
+    const customPrompt = document.getElementById('review-prompt').value;
+    
+    // 检查选择的服务的API Key
+    if (selectedService === 'openai' && !settings.openaiSettings?.apiKey) {
       alert('请先在选项页面配置OpenAI API Key');
       return;
-    } else if (settings.aiService === 'anthropic' && !settings.anthropicSettings?.apiKey) {
+    } else if (selectedService === 'anthropic' && !settings.anthropicSettings?.apiKey) {
       alert('请先在选项页面配置Anthropic API Key');
       return;
     }
@@ -146,10 +197,16 @@ async function startReview() {
     // 添加新结果
     container.appendChild(resultDiv);
     
-    // 发送审查请求
+    // 发送审查请求，包含临时设置
     const result = await chrome.runtime.sendMessage({
       type: 'ANALYZE_PR',
-      data: currentPRInfo
+      data: {
+        ...currentPRInfo,
+        tempSettings: {
+          aiService: selectedService,
+          reviewPrompt: customPrompt
+        }
+      }
     });
     
     if (result.success) {

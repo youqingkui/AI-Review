@@ -394,23 +394,35 @@ async function handlePRAnalysis(prData) {
     timestamp: new Date().toISOString()
   });
   
+  // 获取基础设置
   const settings = await getSettings();
+  
+  // 合并临时设置（如果有）
+  const finalSettings = {
+    ...settings,
+    aiService: prData.tempSettings?.aiService || settings.aiService,
+    reviewSettings: {
+      ...settings.reviewSettings,
+      reviewPrompt: prData.tempSettings?.reviewPrompt || settings.reviewSettings.reviewPrompt
+    }
+  };
+  
   console.log('📝 Using AI Service:', {
-    service: settings.aiService,
-    model: settings.aiService === 'openai' 
-      ? settings.openaiSettings?.model || DEFAULT_SETTINGS.openaiSettings.model
-      : settings.anthropicSettings?.model
+    service: finalSettings.aiService,
+    model: finalSettings.aiService === 'openai' 
+      ? finalSettings.openaiSettings?.model || DEFAULT_SETTINGS.openaiSettings.model
+      : finalSettings.anthropicSettings?.model
   });
   
   // 修改配置检查逻辑
-  if (!settings.githubToken) {
+  if (!finalSettings.githubToken) {
     throw new Error('GitHub Token未配置');
   }
 
   // 根据选择的服务检查对应的API Key
-  if (settings.aiService === 'openai' && !settings.openaiSettings?.apiKey) {
+  if (finalSettings.aiService === 'openai' && !finalSettings.openaiSettings?.apiKey) {
     throw new Error('OpenAI API Key未置');
-  } else if (settings.aiService === 'anthropic' && !settings.anthropicSettings?.apiKey) {
+  } else if (finalSettings.aiService === 'anthropic' && !finalSettings.anthropicSettings?.apiKey) {
     throw new Error('Anthropic API Key未配置');
   }
 
@@ -424,7 +436,7 @@ async function handlePRAnalysis(prData) {
     });
 
     // 过滤忽略的文件
-    const ignorePatterns = settings.reviewSettings.ignoreFiles;
+    const ignorePatterns = finalSettings.reviewSettings.ignoreFiles;
     console.log('🔍 Filtering files:', {
       total: prDetails.changedFiles.length,
       ignorePatterns
@@ -453,7 +465,7 @@ async function handlePRAnalysis(prData) {
     }
 
     // 成审查提示词
-    const prompt = generateReviewPrompt(prDetails, settings);
+    const prompt = generateReviewPrompt(prDetails, finalSettings);
     console.log('💭 Generated prompt:', {
       length: prompt.length,
       preview: prompt.substring(0, 200) + '...'
@@ -461,7 +473,7 @@ async function handlePRAnalysis(prData) {
 
     // 调用GPT API进行代码审查
     console.log('🤖 Starting code review...');
-    const { content: reviewResult, tokenUsage } = await callAIAPI(prompt, settings);
+    const { content: reviewResult, tokenUsage } = await callAIAPI(prompt, finalSettings);
 
     // 返回审查结果
     console.log('✅ Review completed');
