@@ -2,21 +2,50 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <title>AI Review</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <h1>AI Review</h1>
-    <div id="pr-info" class="hidden">
-      <h2>PR信息</h2>
-      <div id="pr-details"></div>
-      <button id="start-review">开始审查</button>
+    
+    <!-- AI服务选择 -->
+    <div class="service-selection">
+      <label for="ai-service">选择AI服务:</label>
+      <select id="ai-service">
+        <option value="openai">OpenAI (GPT-4)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+      </select>
     </div>
+    
+    <!-- 提示词编辑器切换按钮 -->
+    <button id="toggle-prompt" class="secondary-button">显示提示词</button>
+    
+    <!-- 提示词编辑区域 -->
+    <div id="prompt-section" class="hidden">
+      <label for="review-prompt">审查提示词:</label>
+      <textarea id="review-prompt" spellcheck="false"></textarea>
+      <div class="prompt-help">
+        <strong>可用变量:</strong>
+        <ul>
+          <li>{files} - 变更文件列表</li>
+          <li>{diff} - 代码差异</li>
+          <li>{language} - 编程语言</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 现有的PR信息区域 -->
     <div id="no-pr" class="hidden">
-      <p>请在GitHub PR页面使用此插件</p>
+      <p>请在GitHub的PR页面使用此插件</p>
     </div>
-    <div id="review-actions" class="hidden">
-      <button id="submit-review" class="secondary">提交审查评论</button>
+    
+    <div id="pr-info">
+      <div id="pr-details"></div>
+      <button id="start-review" class="primary-button">开始审查</button>
+      <div id="review-actions" class="hidden">
+        <button id="submit-review">提交审查评论</button>
+      </div>
     </div>
   </div>
   <script src="popup.js"></script>
