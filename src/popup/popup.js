@@ -1,5 +1,6 @@
 let currentPRInfo = null;
 let currentReviewResult = null;
+let streamedContent = '';
 
 // 初始化popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -49,7 +50,7 @@ function displayPRInfo(prInfo) {
 
 // 显示审查结果
 function displayReviewResult(result) {
-  currentReviewResult = result; // 保存审查结果
+  currentReviewResult = result;
   const container = document.getElementById('pr-info');
   
   // 创建结果容器
@@ -57,13 +58,14 @@ function displayReviewResult(result) {
   resultDiv.className = 'review-result';
   resultDiv.innerHTML = `
     <h2>审查结果</h2>
-    <div class="review-content">${formatReviewContent(result.data.review)}</div>
+    <div id="review-content" class="review-content">${formatReviewContent(currentReviewResult.data.review)}</div>
     <div class="review-summary">
       <strong>统计信息:</strong>
       <ul>
-        <li>审查文件数: ${result.data.files.length}</li>
-        <li>代码增加: +${result.data.summary.additions}</li>
-        <li>代码删除: -${result.data.summary.deletions}</li>
+        <li>审查文件数: ${currentReviewResult.data.files.length}</li>
+        <li>代码增加: +${currentReviewResult.data.summary.additions}</li>
+        <li>代码删除: -${currentReviewResult.data.summary.deletions}</li>
+        <li>Token消耗: ${currentReviewResult.data.tokenUsage?.total || 'N/A'}</li>
       </ul>
     </div>
   `;
@@ -114,6 +116,36 @@ async function startReview() {
       return;
     }
     
+    // 重置流式内容
+    streamedContent = '';
+    
+    // 创建初始的审查结果显示
+    const container = document.getElementById('pr-info');
+    const resultDiv = document.createElement('div');
+    resultDiv.className = 'review-result';
+    resultDiv.innerHTML = `
+      <h2>审查结果</h2>
+      <div id="review-content" class="review-content"></div>
+      <div class="review-summary">
+        <strong>统计信息:</strong>
+        <ul>
+          <li>审查文件数: 加载中...</li>
+          <li>代码增加: 加载中...</li>
+          <li>代码删除: 加载中...</li>
+          <li>Token消耗: 加载中...</li>
+        </ul>
+      </div>
+    `;
+    
+    // 移除旧的结果（如果存在）
+    const oldResult = container.querySelector('.review-result');
+    if (oldResult) {
+      oldResult.remove();
+    }
+    
+    // 添加新结果
+    container.appendChild(resultDiv);
+    
     // 发送审查请求
     const result = await chrome.runtime.sendMessage({
       type: 'ANALYZE_PR',
@@ -121,7 +153,30 @@ async function startReview() {
     });
     
     if (result.success) {
-      displayReviewResult(result);
+      // 更新统计信息
+      const summaryElement = container.querySelector('.review-summary');
+      summaryElement.innerHTML = `
+        <strong>统计信息:</strong>
+        <ul>
+          <li>审查文件数: ${result.data.files.length}</li>
+          <li>代码增加: +${result.data.summary.additions}</li>
+          <li>代码删除: -${result.data.summary.deletions}</li>
+          <li>Token消耗: ${result.data.tokenUsage?.total || 'N/A'}</li>
+        </ul>
+      `;
+      
+      // 保存完整结果
+      currentReviewResult = {
+        data: {
+          review: streamedContent,
+          files: result.data.files,
+          summary: result.data.summary,
+          tokenUsage: result.data.tokenUsage
+        }
+      };
+      
+      // 显示提交评论按钮
+      document.getElementById('review-actions').classList.remove('hidden');
     } else {
       alert(`审查失败: ${result.error}`);
     }
@@ -133,6 +188,40 @@ async function startReview() {
     button.disabled = false;
     button.textContent = '开始审查';
   }
+}
+
+// 更新审查显示
+function updateReviewDisplay() {
+  const container = document.getElementById('pr-info');
+  
+  // 创建结果容器
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'review-result';
+  resultDiv.innerHTML = `
+    <h2>审查结果</h2>
+    <div id="review-content" class="review-content">${formatReviewContent(currentReviewResult.data.review)}</div>
+    <div class="review-summary">
+      <strong>统计信息:</strong>
+      <ul>
+        <li>审查文件数: ${currentReviewResult.data.files.length}</li>
+        <li>代码增加: +${currentReviewResult.data.summary.additions}</li>
+        <li>代码删除: -${currentReviewResult.data.summary.deletions}</li>
+        <li>Token消耗: ${currentReviewResult.data.tokenUsage?.total || 'N/A'}</li>
+      </ul>
+    </div>
+  `;
+  
+  // 移除旧的结果（如果存在）
+  const oldResult = container.querySelector('.review-result');
+  if (oldResult) {
+    oldResult.remove();
+  }
+  
+  // 添加新结果
+  container.appendChild(resultDiv);
+
+  // 显示提交评论按钮
+  document.getElementById('review-actions').classList.remove('hidden');
 }
 
 // 提交审查评论
@@ -168,4 +257,33 @@ async function submitReview() {
     button.textContent = '提交审查评论';
     button.disabled = false;
   }
+}
+
+// 添加消息监听器处理流式更新
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'STREAM_UPDATE') {
+    const { content, done } = message.data;
+    const reviewElement = document.getElementById('review-content');
+    
+    if (reviewElement) {
+      if (!done) {
+        // 累积流式内容
+        streamedContent += content;
+        // 处理流式内容更新
+        const formattedContent = formatReviewContent(content);
+        reviewElement.innerHTML = formatReviewContent(streamedContent); // 显示完整的累积内容
+      } else {
+        // 处理完成事件
+        console.log('Stream completed');
+      }
+    }
+  }
+});
+
+// 格式化实时内容
+function formatReviewContent(content) {
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 } 

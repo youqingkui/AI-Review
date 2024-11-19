@@ -212,7 +212,8 @@ async function callAIAPI(prompt, settings) {
           { role: 'user', content: prompt }
         ],
         max_tokens: settings.reviewSettings.maxTokens,
-        temperature: 0.7
+        temperature: 0.7,
+        stream: true  // 启用流式响应
       };
       break;
 
@@ -235,7 +236,8 @@ async function callAIAPI(prompt, settings) {
           }
         ],
         max_tokens: settings.reviewSettings.maxTokens,
-        system: '你是一个专业的代码审查员，请用中文回复。'
+        system: '你是一个专业的代码审查员，请用中文回复。',
+        stream: true  // 启用流式响应
       };
       break;
 
@@ -252,36 +254,114 @@ async function callAIAPI(prompt, settings) {
     promptPreview: prompt
   });
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body)
-  });
+  let tokenUsage = {
+    prompt: 0,
+    completion: 0,
+    total: 0
+  };
 
-  if (!response.ok) {
-    console.error('❌ AI API Error:', {
-      service: service,
-      status: response.status,
-      statusText: response.statusText,
-      response: await response.text()
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
     });
-    throw new Error(`AI API error: ${response.status} - ${response.statusText}`);
+
+    if (!response.ok) {
+      throw new Error(`AI API error: ${response.status} - ${response.statusText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      buffer += chunk;
+      
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.trim() === 'data: [DONE]') continue;
+        
+        try {
+          if (service === 'openai') {
+            if (!line.startsWith('data: ')) continue;
+            const jsonString = line.replace(/^data: /, '').trim();
+            if (!jsonString) continue;
+            
+            const json = JSON.parse(jsonString);
+            const content = json.choices[0]?.delta?.content || '';
+            if (content) {
+              fullContent += content;
+              // 发送内容更新
+              chrome.runtime.sendMessage({
+                type: 'STREAM_UPDATE',
+                data: {
+                  content: content,
+                  done: false
+                }
+              });
+            }
+            
+          } else if (service === 'anthropic') {
+            if (line.startsWith('event: ')) continue;
+            if (!line.startsWith('data: ')) continue;
+            
+            const jsonString = line.replace(/^data: /, '').trim();
+            if (!jsonString) continue;
+            
+            const json = JSON.parse(jsonString);
+            if (json.type === 'content_block_delta') {
+              const content = json.delta?.text || '';
+              if (content) {
+                fullContent += content;
+                // 发送内容更新
+                chrome.runtime.sendMessage({
+                  type: 'STREAM_UPDATE',
+                  data: {
+                    content: content,
+                    done: false
+                  }
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse streaming response line:', {
+            line,
+            error: e.message
+          });
+          continue;
+        }
+      }
+    }
+
+    // 发送完成消息
+    chrome.runtime.sendMessage({
+      type: 'STREAM_UPDATE',
+      data: {
+        content: '',
+        done: true
+      }
+    });
+
+    return {
+      content: fullContent,
+      tokenUsage: {
+        total: Math.round(fullContent.length / 4) // 简单估算token数
+      }
+    };
+  } catch (error) {
+    console.error('❌ AI API Error:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  const content = service === 'anthropic' 
-    ? data.content[0].text 
-    : data.choices[0].message.content;
-
-  console.log('✅ AI API Response:', {
-    service: service,
-    model: model,
-    responseLength: content.length,
-    contentPreview: content.substring(0, 100) + '...',
-    rawResponse: data // 添加完整原始响应，方便调试
-  });
-
-  return content;
 }
 
 // 生成审查提示词
@@ -381,7 +461,7 @@ async function handlePRAnalysis(prData) {
 
     // 调用GPT API进行代码审查
     console.log('🤖 Starting code review...');
-    const reviewResult = await callAIAPI(prompt, settings);
+    const { content: reviewResult, tokenUsage } = await callAIAPI(prompt, settings);
 
     // 返回审查结果
     console.log('✅ Review completed');
@@ -394,7 +474,8 @@ async function handlePRAnalysis(prData) {
           totalFiles: prDetails.changed_files,
           additions: prDetails.additions,
           deletions: prDetails.deletions
-        }
+        },
+        tokenUsage
       }
     };
 
