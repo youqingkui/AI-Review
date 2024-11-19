@@ -29,8 +29,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 初始化AI服务选择
   const aiServiceSelect = document.getElementById('ai-service');
+  // 更新选项文本以显示实际配置的模型
+  aiServiceSelect.innerHTML = `
+    <option value="openai">OpenAI (${settings.openaiSettings?.model || 'gpt-4'})</option>
+    <option value="anthropic">Anthropic (${settings.anthropicSettings?.model || 'claude-3-sonnet-20240229'})</option>
+  `;
   // 设置默认值为配置中的选择
   aiServiceSelect.value = settings.aiService || 'openai';
+  
+  console.log('🤖 Set AI service to:', {
+    service: aiServiceSelect.value,
+    openaiModel: settings.openaiSettings?.model,
+    anthropicModel: settings.anthropicSettings?.model
+  });
   
   // 显示当前提示词
   const promptTextarea = document.getElementById('review-prompt');
@@ -281,7 +292,7 @@ function updateReviewDisplay() {
   document.getElementById('review-actions').classList.remove('hidden');
 }
 
-// 提交审查评论
+// 提交��查评论
 async function submitReview() {
   if (!currentPRInfo || !currentReviewResult) return;
 
