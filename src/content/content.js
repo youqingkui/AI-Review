@@ -84,4 +84,82 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     getPRInfo().then(sendResponse);
     return true;
   }
-}); 
+});
+
+function createFloatingButton() {
+  const button = document.createElement('div');
+  button.id = 'cubox-floating-btn';
+  
+  button.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z" fill="white"/>
+    </svg>
+  `;
+  
+  let isDragging = false;
+  let startX, startY, initialX, initialY;
+
+  function onMouseDown(e) {
+    e.preventDefault();
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = button.getBoundingClientRect();
+    initialX = rect.left;
+    initialY = rect.top;
+    isDragging = false;
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e) {
+    e.preventDefault();
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    // 如果移动超过5px才认为是拖拽
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      isDragging = true;
+    }
+    
+    if (isDragging) {
+      const newX = initialX + deltaX;
+      const newY = initialY + deltaY;
+      
+      // 确保不超出视窗
+      const maxX = window.innerWidth - button.offsetWidth;
+      const maxY = window.innerHeight - button.offsetHeight;
+      
+      button.style.left = `${Math.min(Math.max(0, newX), maxX)}px`;
+      button.style.top = `${Math.min(Math.max(0, newY), maxY)}px`;
+    }
+  }
+
+  function onMouseUp(e) {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    
+    if (!isDragging) {
+      console.log('Button clicked, opening popup...');
+      chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
+    }
+    isDragging = false;
+  }
+
+  // 添加事件监听器
+  button.addEventListener('mousedown', onMouseDown);
+  
+  // 设置初始位置
+  button.style.position = 'fixed';
+  button.style.right = '20px';
+  button.style.bottom = '20px';
+  
+  document.body.appendChild(button);
+}
+
+// 确保在页面加载完成后创建按钮
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', createFloatingButton);
+} else {
+  createFloatingButton();
+} 
