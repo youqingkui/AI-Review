@@ -4,7 +4,7 @@ const DEFAULT_SETTINGS = {
   openaiSettings: {
     apiKey: '',
     apiEndpoint: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4'
+    model: 'gpt-4o'
   },
   anthropicSettings: {
     apiKey: '',
@@ -121,7 +121,7 @@ async function githubRequest(endpoint, token) {
   const data = await response.json();
   console.log('✅ GitHub API Response:', { 
     endpoint,
-    dataPreview: JSON.stringify(data).slice(0, 200) + '...'  // 只显示部分响应数据
+    dataPreview: JSON.stringify(data)
   });
   return data;
 }
@@ -296,7 +296,8 @@ async function callAIAPI(prompt, settings) {
       
       console.log(`📥 Received chunk #${chunkCount}:`, {
         chunkSize: chunk.length,
-        bufferSize: buffer.length
+        bufferSize: buffer.length,
+        chunk: chunk
       });
       
       const lines = buffer.split('\n');
@@ -315,7 +316,8 @@ async function callAIAPI(prompt, settings) {
             const json = JSON.parse(jsonString);
             console.log('📝 OpenAI Stream Data:', {
               deltaLength: json.choices[0]?.delta?.content?.length || 0,
-              totalLength: fullContent.length
+              totalLength: fullContent.length,
+              contentJson: json
             });
             
             const content = json.choices[0]?.delta?.content || '';
@@ -360,7 +362,7 @@ async function callAIAPI(prompt, settings) {
           }
         } catch (e) {
           console.warn('⚠️ Failed to parse streaming response line:', {
-            line: line.substring(0, 100) + '...',
+            line: line,
             error: e.message
           });
           continue;
