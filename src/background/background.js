@@ -196,6 +196,12 @@ async function callAIAPI(prompt, settings) {
       settings.anthropicSettings.model === DEFAULT_SETTINGS.anthropicSettings.model
   });
 
+  // 输出完整提示词
+  console.log('📝 Full Prompt:', {
+    content: prompt,
+    length: prompt.length
+  });
+
   switch (service) {
     case 'openai':
       apiKey = settings.openaiSettings.apiKey;
@@ -213,7 +219,7 @@ async function callAIAPI(prompt, settings) {
         ],
         max_tokens: settings.reviewSettings.maxTokens,
         temperature: 0.7,
-        stream: true  // 启用流式响应
+        stream: true
       };
       break;
 
@@ -237,28 +243,25 @@ async function callAIAPI(prompt, settings) {
         ],
         max_tokens: settings.reviewSettings.maxTokens,
         system: '你是一个专业的代码审查员，请用中文回复。',
-        stream: true  // 启用流式响应
+        stream: true
       };
       break;
-
-    default:
-      throw new Error('Unsupported AI service');
   }
 
-  console.log('🚀 Calling AI API:', {
+  console.log('📤 AI API Request:', {
     service: service,
     endpoint: endpoint,
     model: model,
     maxTokens: settings.reviewSettings.maxTokens,
-    promptLength: prompt.length,
-    promptPreview: prompt
+    headers: Object.keys(headers), // 只记录header keys，不记录敏感值
+    body: {
+      ...body,
+      messages: body.messages.map(msg => ({
+        role: msg.role,
+        contentLength: msg.content.length
+      }))
+    }
   });
-
-  let tokenUsage = {
-    prompt: 0,
-    completion: 0,
-    total: 0
-  };
 
   try {
     const response = await fetch(endpoint, {
@@ -268,6 +271,12 @@ async function callAIAPI(prompt, settings) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ AI API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       throw new Error(`AI API error: ${response.status} - ${response.statusText}`);
     }
 
@@ -275,6 +284,7 @@ async function callAIAPI(prompt, settings) {
     const decoder = new TextDecoder();
     let fullContent = '';
     let buffer = '';
+    let chunkCount = 0;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -282,6 +292,12 @@ async function callAIAPI(prompt, settings) {
       
       const chunk = decoder.decode(value);
       buffer += chunk;
+      chunkCount++;
+      
+      console.log(`📥 Received chunk #${chunkCount}:`, {
+        chunkSize: chunk.length,
+        bufferSize: buffer.length
+      });
       
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
@@ -297,10 +313,14 @@ async function callAIAPI(prompt, settings) {
             if (!jsonString) continue;
             
             const json = JSON.parse(jsonString);
+            console.log('📝 OpenAI Stream Data:', {
+              deltaLength: json.choices[0]?.delta?.content?.length || 0,
+              totalLength: fullContent.length
+            });
+            
             const content = json.choices[0]?.delta?.content || '';
             if (content) {
               fullContent += content;
-              // 发送内容更新
               chrome.runtime.sendMessage({
                 type: 'STREAM_UPDATE',
                 data: {
@@ -318,11 +338,16 @@ async function callAIAPI(prompt, settings) {
             if (!jsonString) continue;
             
             const json = JSON.parse(jsonString);
+            console.log('📝 Anthropic Stream Data:', {
+              type: json.type,
+              deltaLength: json.delta?.text?.length || 0,
+              totalLength: fullContent.length
+            });
+            
             if (json.type === 'content_block_delta') {
               const content = json.delta?.text || '';
               if (content) {
                 fullContent += content;
-                // 发送内容更新
                 chrome.runtime.sendMessage({
                   type: 'STREAM_UPDATE',
                   data: {
@@ -334,14 +359,21 @@ async function callAIAPI(prompt, settings) {
             }
           }
         } catch (e) {
-          console.warn('Failed to parse streaming response line:', {
-            line,
+          console.warn('⚠️ Failed to parse streaming response line:', {
+            line: line.substring(0, 100) + '...',
             error: e.message
           });
           continue;
         }
       }
     }
+
+    console.log('✅ AI Response Completed:', {
+      totalLength: fullContent.length,
+      chunkCount: chunkCount,
+      service: service,
+      model: model
+    });
 
     // 发送完成消息
     chrome.runtime.sendMessage({
@@ -359,13 +391,19 @@ async function callAIAPI(prompt, settings) {
       }
     };
   } catch (error) {
-    console.error('❌ AI API Error:', error);
+    console.error('❌ AI API Error:', {
+      error: error.message,
+      service: service,
+      endpoint: endpoint
+    });
     throw error;
   }
 }
 
 // 生成审查提示词
 function generateReviewPrompt(prDetails, settings) {
+  console.log('🎯 Generating review prompt...');
+  
   const filesList = prDetails.changedFiles
     .map(file => `${file.name} (${file.status}: +${file.additions} -${file.deletions})`)
     .join('\n');
@@ -381,10 +419,19 @@ function generateReviewPrompt(prDetails, settings) {
       .filter(ext => ext)
   );
 
-  return settings.reviewSettings.reviewPrompt
+  const prompt = settings.reviewSettings.reviewPrompt
     .replace('{files}', filesList)
     .replace('{diff}', diffs)
     .replace('{language}', Array.from(languages).join(', '));
+
+  console.log('📋 Generated Prompt Details:', {
+    filesCount: prDetails.changedFiles.length,
+    diffLength: diffs.length,
+    languages: Array.from(languages),
+    totalLength: prompt.length
+  });
+
+  return prompt;
 }
 
 // PR分析处理
