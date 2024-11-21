@@ -41,7 +41,8 @@
     "resources": [
       "assets/icons/*",
       "src/content/*.css",
-      "src/popup/*.css"
+      "src/popup/*.css",
+      "src/popup/popup.html"
     ],
     "matches": ["<all_urls>"]
   }],

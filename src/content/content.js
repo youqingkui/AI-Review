@@ -86,9 +86,62 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+function createContentContainer() {
+  const container = document.createElement('div');
+  container.id = 'ai-review-content';
+  container.style.display = 'none';
+  
+  const iframe = document.createElement('iframe');
+  iframe.src = chrome.runtime.getURL('src/popup/popup.html');
+  container.appendChild(iframe);
+  
+  // 点击外部关闭
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target) && 
+        !document.getElementById('ai-review-floating-btn').contains(e.target)) {
+      container.style.display = 'none';
+    }
+  });
+  
+  // 添加窗口resize监听
+  window.addEventListener('resize', () => {
+    if (container.style.display !== 'none') {
+      adjustContainerPosition(container);
+    }
+  });
+  
+  document.body.appendChild(container);
+  return container;
+}
+
+// 新增：调整容器位置的函数
+function adjustContainerPosition(container) {
+  const button = document.getElementById('ai-review-floating-btn');
+  if (!button) return;
+
+  const buttonRect = button.getBoundingClientRect();
+  const containerWidth = 400;
+  
+  // 计算最佳显示位置
+  let left = buttonRect.right + 10;
+  if (left + containerWidth > window.innerWidth) {
+    left = buttonRect.left - containerWidth - 10;
+  }
+  
+  // 计算top位置，确保不超出视窗
+  let top = buttonRect.top;
+  const containerHeight = container.offsetHeight;
+  if (top + containerHeight > window.innerHeight) {
+    top = window.innerHeight - containerHeight - 10;
+  }
+  
+  container.style.left = `${Math.max(10, left)}px`;
+  container.style.top = `${Math.max(10, top)}px`;
+}
+
 function createFloatingButton() {
   const button = document.createElement('div');
-  button.id = 'cubox-floating-btn';
+  button.id = 'ai-review-floating-btn';
   
   button.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -140,8 +193,16 @@ function createFloatingButton() {
     document.removeEventListener('mouseup', onMouseUp);
     
     if (!isDragging) {
-      console.log('Button clicked, opening popup...');
-      chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
+      const container = document.getElementById('ai-review-content') 
+        || createContentContainer();
+      
+      // 切换显示/隐藏
+      const newDisplay = container.style.display === 'none' ? 'block' : 'none';
+      container.style.display = newDisplay;
+      
+      if (newDisplay === 'block') {
+        adjustContainerPosition(container);
+      }
     }
     isDragging = false;
   }
