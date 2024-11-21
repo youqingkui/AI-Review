@@ -28,12 +28,25 @@
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
-      "js": ["src/content/content.js"]
+      "js": ["src/content/content.js"],
+      "css": ["src/content/content.css"]
     }
   ],
   "icons": {
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "assets/icons/*",
+      "src/content/*.css",
+      "src/popup/*.css",
+      "src/popup/popup.html"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' github.githubassets.com"
   }
 } 

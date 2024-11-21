@@ -1,0 +1,91 @@
+#ai-review-floating-btn {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #4B4DFF;
+  box-shadow: 0 2px 12px rgba(75, 77, 255, 0.2);
+  cursor: pointer;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  user-select: none;
+}
+
+#ai-review-floating-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(75, 77, 255, 0.3);
+  background: #5658FF;
+}
+
+#ai-review-floating-btn:active {
+  transform: scale(0.95);
+}
+
+#ai-review-floating-btn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+#ai-review-floating-btn:hover svg {
+  transform: translateX(2px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#ai-review-floating-btn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+#ai-review-content {
+  position: fixed;
+  width: 360px;
+  height: 500px;
+  background: #ffffff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  z-index: 999998;
+  overflow: hidden;
+  animation: slideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 毛玻璃效果 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 细节优化 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+#ai-review-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+
+/* 优化动画效果 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+} 

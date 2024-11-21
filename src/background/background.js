@@ -26,6 +26,9 @@ const DEFAULT_SETTINGS = {
   }
 };
 
+// 存储popup窗口的引用
+let popupWindow = null;
+
 // 监听安装事件
 chrome.runtime.onInstalled.addListener(async (details) => {
   // 获取现有配置
@@ -591,6 +594,33 @@ async function submitGitHubReview(prData, reviewContent) {
 
 // 更新消息监听器
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'OPEN_POPUP') {
+    console.log('Opening popup window...');
+    // 如果已经有打开的窗口，就focus它
+    if (popupWindow) {
+      chrome.windows.update(popupWindow.id, { focused: true });
+    } else {
+      // 创建新的popup窗口
+      chrome.windows.create({
+        url: chrome.runtime.getURL('src/popup/popup.html'),
+        type: 'popup',
+        width: 400,
+        height: 600,
+        left: sender.tab ? Math.round(sender.tab.width - 420) : undefined,
+        top: sender.tab ? Math.round(sender.tab.height * 0.1) : undefined
+      }, (window) => {
+        popupWindow = window;
+        // 监听窗口关闭
+        chrome.windows.onRemoved.addListener(function onRemoved(windowId) {
+          if (windowId === popupWindow.id) {
+            popupWindow = null;
+            chrome.windows.onRemoved.removeListener(onRemoved);
+          }
+        });
+      });
+    }
+    return true;
+  }
   switch (request.type) {
     case 'GET_PR_DETAILS':
       getPRDetails(request.data)
@@ -621,6 +651,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.error('Failed to submit review:', error);
           sendResponse({ error: error.message });
         });
+      return true;
+
+    case 'openPopup':
+      chrome.action.openPopup();
       return true;
   }
 });

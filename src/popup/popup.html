@@ -2,49 +2,116 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Review</title>
   <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      overflow: auto;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: transparent;
+      color: #24292e;
+    }
+    
+    #app {
+      height: 100%;
+      min-height: 100%;
+    }
+
+    .container {
+      max-width: 100%;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 20px 0;
+      font-weight: 600;
+    }
+
+    select, button, textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #e1e4e8;
+      background: #fff;
+      font-size: 14px;
+      line-height: 20px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      background: #4B4DFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #5658FF;
+      transform: translateY(-1px);
+    }
+
+    .service-selection {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI Review</h1>
-    
-    <!-- AI服务选择 -->
-    <div class="service-selection">
-      <label for="ai-service">选择AI服务:</label>
-      <select id="ai-service">
-        <option value="openai">OpenAI (GPT-4)</option>
-        <option value="anthropic">Anthropic (Claude)</option>
-      </select>
-    </div>
-    
-    <!-- 提示词编辑器切换按钮 -->
-    <button id="toggle-prompt" class="secondary-button">显示提示词</button>
-    
-    <!-- 提示词编辑区域 -->
-    <div id="prompt-section" class="hidden">
-      <label for="review-prompt">审查提示词:</label>
-      <textarea id="review-prompt" spellcheck="false"></textarea>
-      <div class="prompt-help">
-        <strong>可用变量:</strong>
-        <ul>
-          <li>{files} - 变更文件列表</li>
-          <li>{diff} - 代码差异</li>
-          <li>{language} - 编程语言</li>
-        </ul>
+  <div id="app">
+    <div class="container">
+      <h1>AI Review</h1>
+      
+      <!-- AI服务选择 -->
+      <div class="service-selection">
+        <label for="ai-service">选择AI服务:</label>
+        <select id="ai-service">
+          <option value="openai">OpenAI (GPT-4)</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+        </select>
       </div>
-    </div>
+      
+      <!-- 提示词编辑器切换按钮 -->
+      <button id="toggle-prompt" class="secondary-button">显示提示词</button>
+      
+      <!-- 提示词编辑区域 -->
+      <div id="prompt-section" class="hidden">
+        <label for="review-prompt">审查提示词:</label>
+        <textarea id="review-prompt" spellcheck="false"></textarea>
+        <div class="prompt-help">
+          <strong>可用变量:</strong>
+          <ul>
+            <li>{files} - 变更文件列表</li>
+            <li>{diff} - 代码差异</li>
+            <li>{language} - 编程语言</li>
+          </ul>
+        </div>
+      </div>
 
-    <!-- 现有的PR信息区域 -->
-    <div id="no-pr" class="hidden">
-      <p>请在GitHub的PR页面使用此插件</p>
-    </div>
-    
-    <div id="pr-info">
-      <div id="pr-details"></div>
-      <button id="start-review" class="primary-button">开始审查</button>
-      <div id="review-actions" class="hidden">
-        <button id="submit-review">提交审查评论</button>
+      <!-- 现有的PR信息区域 -->
+      <div id="no-pr" class="hidden">
+        <p>请在GitHub的PR页面使用此插件</p>
+      </div>
+      
+      <div id="pr-info">
+        <div id="pr-details"></div>
+        <button id="start-review" class="primary-button">开始审查</button>
+        <div id="review-actions" class="hidden">
+          <button id="submit-review">提交审查评论</button>
+        </div>
       </div>
     </div>
   </div>
