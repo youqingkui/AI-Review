@@ -156,11 +156,8 @@ function createFloatingButton() {
   const button = document.createElement('div');
   button.id = 'ai-review-floating-btn';
   
-  button.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z" fill="white"/>
-    </svg>
-  `;
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon48.png');
+  button.innerHTML = `<img src="${iconUrl}" alt="AI Review">`;
   
   let isDragging = false;
   let startX, startY, initialX, initialY;
