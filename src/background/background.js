@@ -129,7 +129,7 @@ async function githubRequest(endpoint, token) {
   return data;
 }
 
-// 获取PR详细信
+// 获取PR详细信息
 async function getPRDetails({ owner, repo, prNumber }) {
   const settings = await getSettings();
   const token = settings.githubToken;
@@ -147,13 +147,22 @@ async function getPRDetails({ owner, repo, prNumber }) {
   }
 
   try {
-    // 并行获取PR信息和文件变更
-    const [prData, files] = await Promise.all([
+    // 并行获取PR信息、文件变更和评论信息
+    const [prData, files, reviews, reviewComments, issueComments] = await Promise.all([
       // 获取PR基本信息
       githubRequest(`/repos/${owner}/${repo}/pulls/${prNumber}`, token),
       // 获取PR文件变更
-      githubRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/files`, token)
+      githubRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/files`, token),
+      // 获取PR reviews
+      githubRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/reviews`, token),
+      // 获取review comments
+      githubRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/comments`, token),
+      // 获取issue comments
+      githubRequest(`/repos/${owner}/${repo}/issues/${prNumber}/comments`, token)
     ]);
+
+    // 格式化评论信息
+    const formattedReviews = formatReviewsAndComments(reviews, reviewComments, issueComments);
 
     return {
       title: prData.title,
@@ -171,7 +180,8 @@ async function getPRDetails({ owner, repo, prNumber }) {
       commits: prData.commits,
       additions: prData.additions,
       deletions: prData.deletions,
-      changed_files: prData.changed_files
+      changed_files: prData.changed_files,
+      reviews: formattedReviews
     };
   } catch (error) {
     console.error('❌ Failed to get PR details:', {
@@ -182,6 +192,60 @@ async function getPRDetails({ owner, repo, prNumber }) {
     });
     throw error;
   }
+}
+
+// 格式化评论和review信息
+function formatReviewsAndComments(reviews = [], reviewComments = [], issueComments = []) {
+  const allFeedback = [
+    ...reviews.map(review => ({
+      type: 'review_decision',
+      author: review.user.login,
+      state: review.state,
+      content: review.body || '',
+      submitted_at: review.submitted_at
+    })),
+    ...reviewComments.map(comment => ({
+      type: 'review_comment',
+      author: comment.user.login,
+      content: comment.body,
+      file: comment.path,
+      line: comment.line,
+      submitted_at: comment.created_at
+    })),
+    ...issueComments.map(comment => ({
+      type: 'issue_comment',
+      author: comment.user.login,
+      content: comment.body,
+      submitted_at: comment.created_at
+    }))
+  ];
+
+  // 按时间排序
+  allFeedback.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+
+  if (allFeedback.length === 0) {
+    return '暂无评论和审查记录';
+  }
+
+  return allFeedback.map(feedback => {
+    switch (feedback.type) {
+      case 'review_decision':
+        const stateMap = {
+          APPROVED: '批准了PR',
+          CHANGES_REQUESTED: '请求修改',
+          COMMENTED: '评论了PR',
+          DISMISSED: '驳回了review'
+        };
+        const action = stateMap[feedback.state] || feedback.state;
+        return `${feedback.author} ${action}${feedback.content ? `:\n${feedback.content}` : ''}`;
+      
+      case 'review_comment':
+        return `${feedback.author} 在文件 ${feedback.file} 第 ${feedback.line} 行评论:\n${feedback.content}`;
+      
+      case 'issue_comment':
+        return `${feedback.author} 评论:\n${feedback.content}`;
+    }
+  }).join('\n\n');
 }
 
 // AI API调用封装
