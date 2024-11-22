@@ -1,10 +1,10 @@
 #ai-review-floating-btn {
   position: fixed;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #4B4DFF;
-  box-shadow: 0 2px 12px rgba(75, 77, 255, 0.2);
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   z-index: 999999;
   display: flex;
@@ -13,27 +13,25 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   user-select: none;
+  padding: 6px;
+  box-sizing: border-box;
 }
 
 #ai-review-floating-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(75, 77, 255, 0.3);
-  background: #5658FF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 #ai-review-floating-btn:active {
   transform: scale(0.95);
 }
 
-#ai-review-floating-btn svg {
-  width: 20px;
-  height: 20px;
+#ai-review-floating-btn img {
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   transition: transform 0.2s ease;
-}
-
-#ai-review-floating-btn:hover svg {
-  transform: translateX(2px);
+  object-fit: contain;
 }
 
 @keyframes fadeIn {

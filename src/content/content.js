@@ -139,18 +139,43 @@ function adjustContainerPosition(container) {
   container.style.top = `${Math.max(10, top)}px`;
 }
 
+// 保存浮窗位置
+async function saveButtonPosition(left, top) {
+  await chrome.storage.local.set({
+    'ai-review-button-position': { left, top }
+  });
+}
+
+// 读取保存的位置
+async function loadButtonPosition() {
+  const result = await chrome.storage.local.get('ai-review-button-position');
+  return result['ai-review-button-position'];
+}
+
 function createFloatingButton() {
   const button = document.createElement('div');
   button.id = 'ai-review-floating-btn';
   
-  button.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z" fill="white"/>
-    </svg>
-  `;
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon48.png');
+  button.innerHTML = `<img src="${iconUrl}" alt="AI Review">`;
   
   let isDragging = false;
   let startX, startY, initialX, initialY;
+
+  // 设置初始位置
+  button.style.position = 'fixed';
+  
+  // 读取保存的位置
+  loadButtonPosition().then(position => {
+    if (position) {
+      button.style.left = `${position.left}px`;
+      button.style.top = `${position.top}px`;
+    } else {
+      // 默认位置
+      button.style.right = '20px';
+      button.style.bottom = '20px';
+    }
+  });
 
   function onMouseDown(e) {
     e.preventDefault();
@@ -170,7 +195,6 @@ function createFloatingButton() {
     const deltaX = e.clientX - startX;
     const deltaY = e.clientY - startY;
     
-    // 如果移动超过5px才认为是拖拽
     if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       isDragging = true;
     }
@@ -179,12 +203,17 @@ function createFloatingButton() {
       const newX = initialX + deltaX;
       const newY = initialY + deltaY;
       
-      // 确保不超出视窗
       const maxX = window.innerWidth - button.offsetWidth;
       const maxY = window.innerHeight - button.offsetHeight;
       
-      button.style.left = `${Math.min(Math.max(0, newX), maxX)}px`;
-      button.style.top = `${Math.min(Math.max(0, newY), maxY)}px`;
+      const left = Math.min(Math.max(0, newX), maxX);
+      const top = Math.min(Math.max(0, newY), maxY);
+      
+      button.style.left = `${left}px`;
+      button.style.top = `${top}px`;
+      // 移除right和bottom样式，避免冲突
+      button.style.right = '';
+      button.style.bottom = '';
     }
   }
 
@@ -192,11 +221,14 @@ function createFloatingButton() {
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
     
-    if (!isDragging) {
+    if (isDragging) {
+      // 保存新位置
+      const rect = button.getBoundingClientRect();
+      saveButtonPosition(rect.left, rect.top);
+    } else {
       const container = document.getElementById('ai-review-content') 
         || createContentContainer();
       
-      // 切换显示/隐藏
       const newDisplay = container.style.display === 'none' ? 'block' : 'none';
       container.style.display = newDisplay;
       
@@ -207,14 +239,7 @@ function createFloatingButton() {
     isDragging = false;
   }
 
-  // 添加事件监听器
   button.addEventListener('mousedown', onMouseDown);
-  
-  // 设置初始位置
-  button.style.position = 'fixed';
-  button.style.right = '20px';
-  button.style.bottom = '20px';
-  
   document.body.appendChild(button);
 }
 
