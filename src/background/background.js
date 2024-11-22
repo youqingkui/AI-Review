@@ -124,7 +124,7 @@ async function githubRequest(endpoint, token) {
   const data = await response.json();
   console.log('✅ GitHub API Response:', { 
     endpoint,
-    dataPreview: JSON.stringify(data)
+    dataPreview: data
   });
   return data;
 }
@@ -161,8 +161,19 @@ async function getPRDetails({ owner, repo, prNumber }) {
       githubRequest(`/repos/${owner}/${repo}/issues/${prNumber}/comments`, token)
     ]);
 
+    console.log('📝 获取到的PR评论数据:', {
+      reviews: reviews.length,
+      reviewComments: reviewComments.length,
+      issueComments: issueComments.length
+    });
+
     // 格式化评论信息
     const formattedReviews = formatReviewsAndComments(reviews, reviewComments, issueComments);
+
+    console.log('✨ 格式化后的评论信息:', {
+      formattedReviewsLength: formattedReviews.length,
+      preview: formattedReviews.substring(0, 2000) + '...'
+    });
 
     return {
       title: prData.title,
