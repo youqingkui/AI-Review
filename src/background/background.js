@@ -20,7 +20,13 @@ const DEFAULT_SETTINGS = {
 代码信息：
 - 文件：{files}
 - 变更：{diff}
-- 语言：{language}`,
+- 语言：{language}
+- 历史review信息: {reviews}
+
+请根据上述信息和历史评论记录进行全面的代码审查，重点关注：
+1. 之前评论中提到的问题是否已经解决
+2. 是否有新的问题需要关注
+3. 代码改进的建议`,
     maxTokens: 1000,
     ignoreFiles: []
   }
@@ -499,15 +505,21 @@ function generateReviewPrompt(prDetails, settings) {
       .filter(ext => ext)
   );
 
+  // 格式化评论历史
+  const reviewHistory = prDetails.reviews ? 
+    `\n\n=== 历史评论记录 ===\n${prDetails.reviews}` : '';
+
   const prompt = settings.reviewSettings.reviewPrompt
     .replace('{files}', filesList)
     .replace('{diff}', diffs)
-    .replace('{language}', Array.from(languages).join(', '));
+    .replace('{language}', Array.from(languages).join(', '))
+    .replace('{reviews}', reviewHistory);
 
   console.log('📋 Generated Prompt Details:', {
     filesCount: prDetails.changedFiles.length,
     diffLength: diffs.length,
     languages: Array.from(languages),
+    reviewsLength: reviewHistory.length,
     totalLength: prompt.length
   });
 
