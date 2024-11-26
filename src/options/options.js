@@ -19,7 +19,8 @@ const DEFAULT_SETTINGS = {
 代码信息：
 - 文件：{files}
 - 变更：{diff}
-- 语言：{language}`,
+- 语言：{language}
+- 已有评论：{reviews}`,
   maxTokens: 1000,
   ignoreFiles: []
 };

@@ -28,7 +28,10 @@
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
-      "js": ["src/content/content.js"],
+      "js": [
+        "src/content-scripts/github.js",
+        "src/content/content.js"
+      ],
       "css": ["src/content/content.css"]
     }
   ],
