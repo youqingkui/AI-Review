@@ -82,16 +82,15 @@ async function saveOptions() {
     },
     anthropicSettings: {
       apiKey: document.getElementById('anthropicApiKey').value,
+      apiEndpoint: document.getElementById('anthropicApiEndpoint').value || DEFAULT_SETTINGS.anthropicSettings.apiEndpoint,
       model: document.getElementById('anthropicModel').value
     },
-    reviewSettings: {
-      reviewPrompt: document.getElementById('reviewPrompt').value,
-      maxTokens: parseInt(document.getElementById('maxTokens').value, 10),
-      ignoreFiles: document.getElementById('ignoreFiles').value
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line)
-    }
+    reviewPrompt: document.getElementById('reviewPrompt').value,
+    maxTokens: parseInt(document.getElementById('maxTokens').value, 10),
+    ignoreFiles: document.getElementById('ignoreFiles').value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line)
   };
 
   try {
@@ -132,15 +131,13 @@ async function loadOptions() {
   
   // Anthropic 设置
   document.getElementById('anthropicApiKey').value = settings.anthropicSettings?.apiKey || '';
+  document.getElementById('anthropicApiEndpoint').value = settings.anthropicSettings?.apiEndpoint || '';
   document.getElementById('anthropicModel').value = settings.anthropicSettings?.model || DEFAULT_SETTINGS.anthropicSettings.model;
   
   // 审查设置
-  document.getElementById('reviewPrompt').value = 
-    settings.reviewSettings?.reviewPrompt || DEFAULT_SETTINGS.reviewPrompt;
-  document.getElementById('maxTokens').value = 
-    settings.reviewSettings?.maxTokens || DEFAULT_SETTINGS.maxTokens;
-  document.getElementById('ignoreFiles').value = 
-    settings.reviewSettings?.ignoreFiles?.join('\n') || '';
+  document.getElementById('reviewPrompt').value = settings.reviewPrompt || DEFAULT_SETTINGS.reviewPrompt;
+  document.getElementById('maxTokens').value = settings.maxTokens || DEFAULT_SETTINGS.maxTokens;
+  document.getElementById('ignoreFiles').value = settings.ignoreFiles?.join('\n') || '';
 
   // 显示当前服务的设置
   toggleServiceSettings(settings.aiService || 'openai');

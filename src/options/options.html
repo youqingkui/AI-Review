@@ -61,6 +61,11 @@
         <input type="password" id="anthropicApiKey" placeholder="输入Anthropic API密钥">
       </div>
       <div class="form-group">
+        <label for="anthropicApiEndpoint">API 地址（可选）</label>
+        <input type="text" id="anthropicApiEndpoint" placeholder="https://api.anthropic.com/v1/messages">
+        <p class="help-text">如果使用第三方代理服务，可以自定义API地址</p>
+      </div>
+      <div class="form-group">
         <label for="anthropicModel">模型:</label>
         <select id="anthropicModel">
           <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (20241022)</option>
