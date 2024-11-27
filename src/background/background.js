@@ -8,10 +8,10 @@ const DEFAULT_SETTINGS = {
   },
   anthropicSettings: {
     apiKey: '',
-    model: 'claude-3-5-sonnet-latest'
+    apiEndpoint: 'https://api.anthropic.com/v1/messages',
+    model: 'claude-3-sonnet-20240229'
   },
-  reviewSettings: {
-    reviewPrompt: `请用中文回复。作为代码审查员，请帮我检查以下代码：
+  reviewPrompt: `请用中文回复。作为代码审查员，请帮我检查以下代码：
 1. 代码质量和最佳实践
 2. 潜在的bug和安全问题
 3. 性能优化建议
@@ -21,15 +21,9 @@ const DEFAULT_SETTINGS = {
 - 文件：{files}
 - 变更：{diff}
 - 语言：{language}
-- 历史review信息: {reviews}
-
-请根据上述信息和历史评论记录进行全面的代码审查，重点关注：
-1. 之前评论中提到的问题是否已经解决
-2. 是否有新的问题需要关注
-3. 代码改进的建议`,
-    maxTokens: 1000,
-    ignoreFiles: []
-  }
+- 已有评论：{reviews}`,
+  maxTokens: 1000,
+  ignoreFiles: []
 };
 
 // 存储popup窗口的引用
@@ -309,13 +303,12 @@ async function callAIAPI(prompt, settings) {
 
     case 'anthropic':
       apiKey = settings.anthropicSettings.apiKey;
-      endpoint = 'https://api.anthropic.com/v1/messages';
+      endpoint = settings.anthropicSettings.apiEndpoint || DEFAULT_SETTINGS.anthropicSettings.apiEndpoint;
       model = settings.anthropicSettings.model;
       headers = {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
       };
       body = {
         model: model,
